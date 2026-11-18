@@ -1546,3 +1546,29 @@ button:focus-visible, [role="radio"]:focus-visible {
     white-space: nowrap !important;
 }
 
+
+/* HEADER LAYOUT TEST */
+.main-header {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    flex-wrap: nowrap !important;
+    gap: 24px !important;
+    min-height: 100px !important;
+}
+
+.main-header .header-content {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.main-header .eyebrow {
+    position: static !important;
+    transform: none !important;
+}
+
+.main-header::before,
+.main-header::after {
+    content: none !important;
+}
