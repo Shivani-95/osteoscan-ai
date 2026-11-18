@@ -8,7 +8,7 @@ Fixes applied:
   - XSS via uploaded_file.name
   - Single forward pass (classification + Grad-CAM)
   - DICOM detection via magic bytes (extension-independent)
-  - Optional dependency guards (pydicom / cv2 / pytorch-grad-cam)
+  - Optional dependency guards with visible import diagnostics
   - Safe error display (no traceback leak)
   - MONOCHROME1 case-insensitive
 """
@@ -56,6 +56,7 @@ except ImportError as err:
 
 
 # --- Optional: DICOM ---
+PYDICOM_IMPORT_ERROR = None
 try:
     import pydicom
     from pydicom.pixel_data_handlers.util import (
@@ -63,43 +64,57 @@ try:
         apply_voi_lut,
     )
     HAS_PYDICOM = True
-except ImportError:
+except Exception as err:
     HAS_PYDICOM = False
     pydicom = None
+    apply_modality_lut = None
+    apply_voi_lut = None
+    PYDICOM_IMPORT_ERROR = f"{type(err).__name__}: {err}"
 
 
 # --- Optional: OpenCV ---
+CV2_IMPORT_ERROR = None
 try:
     import cv2
     HAS_CV2 = True
-except ImportError:
+except Exception as err:
     HAS_CV2 = False
     cv2 = None
+    CV2_IMPORT_ERROR = f"{type(err).__name__}: {err}"
 
 
 # --- Optional: Grad-CAM ---
+GRADCAM_IMPORT_ERROR = None
 try:
     from pytorch_grad_cam import GradCAM
-    from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
     from pytorch_grad_cam.utils.image import show_cam_on_image
     HAS_GRADCAM = True
-except ImportError:
+except Exception as err:
     HAS_GRADCAM = False
+    GradCAM = None
+    show_cam_on_image = None
+    GRADCAM_IMPORT_ERROR = f"{type(err).__name__}: {err}"
 
 
-# Grad-CAM is core to the app — hard stop if missing
+# Keep classification available even if the explainability dependencies fail.
+# This also surfaces the real import error in Streamlit instead of a generic message.
 if not HAS_CV2 or not HAS_GRADCAM:
-    st.error(
-        "Grad-CAM dependencies missing. Install:\n\n"
-        "`pip install opencv-python pytorch-grad-cam`"
+    st.warning(
+        "Grad-CAM is currently unavailable. Image classification can still run, "
+        "but the heatmap will not be generated."
     )
-    st.stop()
+    if CV2_IMPORT_ERROR:
+        st.caption(f"OpenCV import diagnostic: {CV2_IMPORT_ERROR}")
+    if GRADCAM_IMPORT_ERROR:
+        st.caption(f"Grad-CAM import diagnostic: {GRADCAM_IMPORT_ERROR}")
 
 if not HAS_PYDICOM:
     st.warning(
-        "⚠️ `pydicom` not installed — DICOM uploads disabled. "
-        "Install with: `pip install pydicom`"
+        "⚠️ DICOM uploads are disabled because pydicom could not be imported. "
+        "Install `pydicom` in requirements.txt."
     )
+    if PYDICOM_IMPORT_ERROR:
+        st.caption(f"pydicom import diagnostic: {PYDICOM_IMPORT_ERROR}")
 
 
 # ============================================================
