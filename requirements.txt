@@ -1,9 +1,9 @@
+
 streamlit
 torch
 torchvision
 Pillow
-opencv-python
+opencv-python-headless
 numpy
 pydicom
-opencv-python-headless
 grad-cam
